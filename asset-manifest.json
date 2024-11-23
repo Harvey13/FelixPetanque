@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/FelixPetanque/static/css/main.5bd39838.css",
+    "main.js": "/FelixPetanque/static/js/main.adc3aae0.js",
+    "index.html": "/FelixPetanque/index.html",
+    "main.5bd39838.css.map": "/FelixPetanque/static/css/main.5bd39838.css.map",
+    "main.adc3aae0.js.map": "/FelixPetanque/static/js/main.adc3aae0.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.5bd39838.css",
+    "static/js/main.adc3aae0.js"
+  ]
+}
