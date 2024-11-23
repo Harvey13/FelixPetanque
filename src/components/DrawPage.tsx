@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaUsers, FaDice } from 'react-icons/fa';
 import { TeamDrawService } from '../services/team-draw.service';
@@ -10,7 +10,6 @@ interface DrawPageProps {
 }
 
 const DrawPage: React.FC<DrawPageProps> = ({ playerCount, presentPlayers, onMatchesUpdate }) => {
-  const [isDrawn, setIsDrawn] = useState(false);
   const teamDrawService = new TeamDrawService();
   const navigate = useNavigate();
 
@@ -21,7 +20,6 @@ const DrawPage: React.FC<DrawPageProps> = ({ playerCount, presentPlayers, onMatc
     }
     const newMatches = teamDrawService.generateMatches(presentPlayers.length, presentPlayers);
     onMatchesUpdate(newMatches);
-    setIsDrawn(true);
     navigate('/teams');
   };
 

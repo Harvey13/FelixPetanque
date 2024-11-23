@@ -16,8 +16,6 @@ export class TeamDrawService {
         this.shuffleArray(players);
         const matches: Match[] = [];
         const modulo = playerCount % 4;
-        const baseTeamsCount = Math.floor(playerCount / 4);
-
         let matchNumber = 1;
         let remainingPlayers = [...players];
 
