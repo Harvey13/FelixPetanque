@@ -1,11 +1,12 @@
-const CACHE_NAME = 'tirage-equipes-v3';
+const CACHE_NAME = 'tirage-equipes-v5';
+const BASE_PATH = '/FelixPetanque';
 const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  './petanque.svg',
-  './assets/index-B4x5_eNc.css',
-  './assets/index-8gOhxPfC.js'
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/manifest.json`,
+  `${BASE_PATH}/petanque.svg`,
+  `${BASE_PATH}/assets/index-B4x5_eNc.css`,
+  `${BASE_PATH}/assets/index-8gOhxPfC.js`
 ];
 
 // Install event - cache all initial resources
@@ -13,14 +14,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
+        console.log('Opening cache');
         return cache.addAll(urlsToCache);
       })
       .catch(error => {
         console.error('Cache installation failed:', error);
       })
   );
-  // Activate new service worker immediately
   self.skipWaiting();
 });
 
@@ -28,17 +28,16 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
-      // Clean up old caches
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
             if (cacheName !== CACHE_NAME) {
+              console.log('Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       }),
-      // Take control of all clients immediately
       clients.claim()
     ])
   );
@@ -46,6 +45,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache first, then network
 self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -54,10 +58,16 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
 
-        // Clone the request because it's a one-time use stream
-        const fetchRequest = event.request.clone();
+        // For navigation requests (HTML pages), always try network first
+        if (event.request.mode === 'navigate') {
+          return fetch(event.request)
+            .catch(() => {
+              return caches.match(`${BASE_PATH}/index.html`);
+            });
+        }
 
-        return fetch(fetchRequest)
+        // For other requests, try network and cache as fallback
+        return fetch(event.request)
           .then((response) => {
             // Check if we received a valid response
             if (!response || response.status !== 200) {
@@ -67,21 +77,28 @@ self.addEventListener('fetch', (event) => {
             // Clone the response because it's a one-time use stream
             const responseToCache = response.clone();
 
-            // Cache the fetched response
+            // Cache the new response
             caches.open(CACHE_NAME)
               .then((cache) => {
-                cache.put(event.request, responseToCache);
+                const url = new URL(event.request.url);
+                // Only cache same-origin requests
+                if (url.origin === self.location.origin) {
+                  cache.put(event.request, responseToCache);
+                }
               });
 
             return response;
           })
           .catch(() => {
-            // If fetch fails (offline), return cached index.html for navigation requests
+            // If both network and cache fail, return a fallback response
             if (event.request.mode === 'navigate') {
-              return caches.match('./index.html');
+              return caches.match(`${BASE_PATH}/index.html`);
             }
-            // Return cached response if available
-            return caches.match(event.request);
+            // For other resources, we've already checked the cache earlier
+            return new Response('Network error happened', {
+              status: 408,
+              headers: { 'Content-Type': 'text/plain' },
+            });
           });
       })
   );

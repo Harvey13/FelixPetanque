@@ -7,6 +7,7 @@ import TeamsDisplay from './components/TeamsDisplay';
 import { Match } from './services/team-draw.service';
 
 function App() {
+  const [isStorageAvailable, setIsStorageAvailable] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [playerCount, setPlayerCount] = useState(() => {
     const saved = localStorage.getItem('playerCount');
@@ -24,6 +25,17 @@ function App() {
   });
 
   useEffect(() => {
+    // Vérifier si le localStorage est disponible
+    try {
+      localStorage.setItem('test', 'test');
+      localStorage.removeItem('test');
+    } catch (e) {
+      setIsStorageAvailable(false);
+      console.error('localStorage n\'est pas disponible:', e);
+    }
+  }, []);
+
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -37,16 +49,22 @@ function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('playerCount', playerCount);
-  }, [playerCount]);
+    if (isStorageAvailable) {
+      localStorage.setItem('playerCount', playerCount);
+    }
+  }, [playerCount, isStorageAvailable]);
 
   useEffect(() => {
-    localStorage.setItem('matches', JSON.stringify(matches));
-  }, [matches]);
+    if (isStorageAvailable) {
+      localStorage.setItem('matches', JSON.stringify(matches));
+    }
+  }, [matches, isStorageAvailable]);
 
   useEffect(() => {
-    localStorage.setItem('presentPlayers', JSON.stringify(Array.from(presentPlayers)));
-  }, [presentPlayers]);
+    if (isStorageAvailable) {
+      localStorage.setItem('presentPlayers', JSON.stringify(Array.from(presentPlayers)));
+    }
+  }, [presentPlayers, isStorageAvailable]);
 
   const handlePlayerCountChange = (count: string) => {
     setPlayerCount(count);
@@ -63,9 +81,11 @@ function App() {
     setPlayerCount('');
     setPresentPlayers(new Set());
     setMatches([]);
-    localStorage.removeItem('playerCount');
-    localStorage.removeItem('matches');
-    localStorage.removeItem('presentPlayers');
+    if (isStorageAvailable) {
+      localStorage.removeItem('playerCount');
+      localStorage.removeItem('matches');
+      localStorage.removeItem('presentPlayers');
+    }
   };
 
   const handleTogglePresence = (playerId: number) => {
@@ -89,6 +109,11 @@ function App() {
         {!isOnline && (
           <div className="text-sm text-center mt-1 bg-yellow-500 p-1 rounded">
             Mode hors connexion - Vos données sont sauvegardées localement
+          </div>
+        )}
+        {!isStorageAvailable && (
+          <div className="text-sm text-center mt-1 bg-red-500 p-1 rounded">
+            Attention: Le stockage local n'est pas disponible. Vos données ne seront pas sauvegardées.
           </div>
         )}
       </header>
