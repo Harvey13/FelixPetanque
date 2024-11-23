@@ -1,21 +1,46 @@
-const CACHE_NAME = 'tirage-equipes-v5';
-const BASE_PATH = '/FelixPetanque';
+const CACHE_NAME = 'tirage-equipes-v6';
 const urlsToCache = [
-  `${BASE_PATH}/`,
-  `${BASE_PATH}/index.html`,
-  `${BASE_PATH}/manifest.json`,
-  `${BASE_PATH}/petanque.svg`,
-  `${BASE_PATH}/assets/index-B4x5_eNc.css`,
-  `${BASE_PATH}/assets/index-8gOhxPfC.js`
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/petanque.svg',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png'
+];
+
+// Dynamically cache CSS and JS files
+const dynamicUrlsToCache = [
+  // Will be populated during install
 ];
 
 // Install event - cache all initial resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
+      .then(async (cache) => {
         console.log('Opening cache');
-        return cache.addAll(urlsToCache);
+        
+        // Cache static files
+        await cache.addAll(urlsToCache);
+
+        // Find and cache main CSS and JS files
+        try {
+          const mainPage = await fetch('/index.html');
+          const text = await mainPage.text();
+          const matches = text.match(/\/assets\/[^"]+\.(js|css)/g) || [];
+          
+          // Add found assets to dynamic cache list
+          matches.forEach(match => {
+            if (!dynamicUrlsToCache.includes(match)) {
+              dynamicUrlsToCache.push(match);
+            }
+          });
+
+          // Cache dynamic files
+          await cache.addAll(dynamicUrlsToCache);
+        } catch (error) {
+          console.error('Error caching dynamic assets:', error);
+        }
       })
       .catch(error => {
         console.error('Cache installation failed:', error);
@@ -43,12 +68,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Helper function to normalize URLs
+const normalizeUrl = (url) => {
+  const urlObj = new URL(url, self.location.origin);
+  // Remove query parameters and hash
+  return urlObj.origin + urlObj.pathname;
+};
+
 // Fetch event - serve from cache first, then network
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return;
   }
+
+  const normalizedUrl = normalizeUrl(event.request.url);
 
   event.respondWith(
     caches.match(event.request)
@@ -58,16 +92,10 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
 
-        // For navigation requests (HTML pages), always try network first
-        if (event.request.mode === 'navigate') {
-          return fetch(event.request)
-            .catch(() => {
-              return caches.match(`${BASE_PATH}/index.html`);
-            });
-        }
+        // Clone the request because it's a one-time use stream
+        const fetchRequest = event.request.clone();
 
-        // For other requests, try network and cache as fallback
-        return fetch(event.request)
+        return fetch(fetchRequest)
           .then((response) => {
             // Check if we received a valid response
             if (!response || response.status !== 200) {
@@ -90,11 +118,10 @@ self.addEventListener('fetch', (event) => {
             return response;
           })
           .catch(() => {
-            // If both network and cache fail, return a fallback response
+            // If both network and cache fail for navigation, return cached index.html
             if (event.request.mode === 'navigate') {
-              return caches.match(`${BASE_PATH}/index.html`);
+              return caches.match('/index.html');
             }
-            // For other resources, we've already checked the cache earlier
             return new Response('Network error happened', {
               status: 408,
               headers: { 'Content-Type': 'text/plain' },
