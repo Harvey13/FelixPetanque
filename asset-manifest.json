@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/FelixPetanque/static/css/main.5bd39838.css",
-    "main.js": "/FelixPetanque/static/js/main.adc3aae0.js",
+    "main.css": "/FelixPetanque/static/css/main.5d15b67b.css",
+    "main.js": "/FelixPetanque/static/js/main.9725a7c3.js",
     "index.html": "/FelixPetanque/index.html",
-    "main.5bd39838.css.map": "/FelixPetanque/static/css/main.5bd39838.css.map",
-    "main.adc3aae0.js.map": "/FelixPetanque/static/js/main.adc3aae0.js.map"
+    "main.5d15b67b.css.map": "/FelixPetanque/static/css/main.5d15b67b.css.map",
+    "main.9725a7c3.js.map": "/FelixPetanque/static/js/main.9725a7c3.js.map"
   },
   "entrypoints": [
-    "static/css/main.5bd39838.css",
-    "static/js/main.adc3aae0.js"
+    "static/css/main.5d15b67b.css",
+    "static/js/main.9725a7c3.js"
   ]
 }
