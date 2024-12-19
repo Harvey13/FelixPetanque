@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaUsers, FaDice } from 'react-icons/fa';
-import { TeamDrawService } from '../services/team-draw.service';
+import { TeamDrawService, Player, Match } from '../services/team-draw.service';
 
 interface DrawPageProps {
   playerCount: string;
@@ -19,26 +19,43 @@ const DrawPage: React.FC<DrawPageProps> = ({
   const teamDrawService = new TeamDrawService();
   const navigate = useNavigate();
 
-  const handleDraw = () => {
+  const handleDraw = React.useCallback(() => {
     if (presentPlayers.length < 4) {
       alert("Il faut au moins 4 joueurs présents pour effectuer le tirage");
       return;
     }
 
-    const newMatches = teamDrawService.generateMatches(presentPlayers);
-    
-    // Mettre à jour les bonus pour les joueurs en triplettes
-    const triplettePlayers = newMatches.flatMap(match => {
-      const { team1, team2 } = match.teams;
-      return [...team1, ...team2].filter(player => 
-        team1.length === 3 || team2.length === 3
-      ).map(player => player.id);
-    });
+    try {
+      const newMatches = teamDrawService.generateMatches(presentPlayers);
+      
+      const triplettePlayers = newMatches.flatMap(match => {
+        const { team1, team2 } = match.teams;
+        return [...team1, ...team2].filter(player => 
+          team1.length === 3 || team2.length === 3
+        ).map(player => player.id);
+      });
 
-    onUpdateBonus(triplettePlayers);
-    onMatchesUpdate(newMatches);
-    navigate('/teams');
-  };
+      console.log('Avant onUpdateBonus:', {
+        triplettePlayers,
+        onUpdateBonusType: typeof onUpdateBonus,
+        onUpdateBonus,
+        newMatches
+      });
+
+      if (typeof onUpdateBonus === 'function') {
+        onUpdateBonus(triplettePlayers);
+      }
+      
+      if (typeof onMatchesUpdate === 'function') {
+        onMatchesUpdate(newMatches);
+      }
+      
+      navigate('/teams');
+    } catch (error) {
+      console.error('Erreur lors du tirage:', error);
+      alert("Une erreur s'est produite lors du tirage");
+    }
+  }, [presentPlayers, onMatchesUpdate, onUpdateBonus, navigate, teamDrawService]);
 
   return (
     <main className="container mx-auto px-4 py-6 max-w-lg">
