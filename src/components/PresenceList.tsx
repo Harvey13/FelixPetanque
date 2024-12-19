@@ -5,7 +5,7 @@ import PlayerCircle from './PlayerCircle';
 
 interface PresenceListProps {
   playerCount: string;
-  presentPlayers: Set<number>;
+  presentPlayers: Map<number, Player>;
   onTogglePresence: (playerId: number) => void;
 }
 
@@ -62,13 +62,15 @@ const PresenceList: React.FC<PresenceListProps> = ({
         </div>
 
         <div className="grid grid-cols-5 gap-4">
-          {Array.from({ length: count }, (_, index) => {
+          {Array.from({ length: parseInt(playerCount) }, (_, index) => {
             const playerNumber = index + 1;
+            const player = presentPlayers.get(playerNumber);
             return (
               <PlayerCircle
                 key={playerNumber}
                 number={playerNumber}
-                isPresent={presentPlayers.has(playerNumber)}
+                isPresent={!!player}
+                hasBonus={player?.hasBonus || false}
                 onClick={() => onTogglePresence(playerNumber)}
               />
             );

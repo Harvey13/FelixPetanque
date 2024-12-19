@@ -14,34 +14,30 @@ export interface Match {
 
 export class TeamDrawService {
     public generateMatches(players: Player[]): Match[] {
-        const playerCount = players.length;
-        if (playerCount < 4 || playerCount > 99) {
+        if (players.length < 4) {
             return [{
                 matchNumber: 1,
-                matchText: "Le nombre de joueurs doit être entre 4 et 99",
+                matchText: "Il faut au moins 4 joueurs présents",
                 teams: { team1: [], team2: [] }
             }];
         }
 
-        // Trier les joueurs : ceux avec bonus en dernier
-        const sortedPlayers = [...players].sort((a, b) => {
-            if (a.hasBonus === b.hasBonus) return 0;
-            return a.hasBonus ? 1 : -1;
-        });
-
+        const shuffledPlayers = [...players];
+        this.shuffleArray(shuffledPlayers);
         const matches: Match[] = [];
         let matchNumber = 1;
-        let remainingPlayers = [...sortedPlayers];
+        let remainingPlayers = [...shuffledPlayers];
 
-        // Logique de tirage modifiée
+        // Traitement selon le modulo
+        const modulo = remainingPlayers.length % 4;
+
         while (remainingPlayers.length >= 4) {
-            // Priorité aux doublettes
             const team1 = remainingPlayers.splice(0, 2);
             const team2 = remainingPlayers.splice(0, 2);
             matches.push(this.createMatch(matchNumber++, team1, team2));
         }
 
-        // Gestion du reste des joueurs
+        // Gestion des joueurs restants
         if (remainingPlayers.length > 0) {
             const lastMatch = this.handleRemainingPlayers(remainingPlayers, matchNumber);
             if (lastMatch) matches.push(lastMatch);
@@ -51,22 +47,18 @@ export class TeamDrawService {
     }
 
     private handleRemainingPlayers(players: Player[], matchNumber: number): Match | null {
-        // Éviter les triplettes pour les joueurs avec bonus si possible
-        const nonBonusPlayers = players.filter(p => !p.hasBonus);
-        const bonusPlayers = players.filter(p => p.hasBonus);
-
         switch (players.length) {
-            case 3:
-                // Si possible, mettre les joueurs avec bonus en doublette
-                if (bonusPlayers.length > 0) {
-                    const team1 = [bonusPlayers[0], nonBonusPlayers[0]];
-                    const team2 = players.filter(p => !team1.includes(p));
-                    return this.createMatch(matchNumber, team1, team2);
-                }
+            case 3: // 2v3
+                const team1 = players.slice(0, 2);
+                const team2 = players.slice(2);
+                return this.createMatch(matchNumber, team1, team2);
+            case 2: // Ajouter à la dernière équipe
+                // TODO: Implémenter la logique pour 2 joueurs restants
                 break;
-            // Ajouter d'autres cas selon vos besoins
+            case 1: // Ajouter à la dernière équipe
+                // TODO: Implémenter la logique pour 1 joueur restant
+                break;
         }
-
         return null;
     }
 
@@ -76,5 +68,12 @@ export class TeamDrawService {
             matchText: `${team1.map(p => p.id).join(", ")} contre ${team2.map(p => p.id).join(", ")}`,
             teams: { team1, team2 }
         };
+    }
+
+    private shuffleArray(array: Player[]): void {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
     }
 }

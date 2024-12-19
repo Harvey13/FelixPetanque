@@ -9,14 +9,14 @@ import { Match } from './services/team-draw.service';
 function App() {
   const [playerCount, setPlayerCount] = useState('');
   const [matches, setMatches] = useState<Match[]>([]);
-  const [presentPlayers, setPresentPlayers] = useState<Set<number>>(new Set());
+  const [presentPlayers, setPresentPlayers] = useState<Map<number, Player>>(new Map());
 
   const handlePlayerCountChange = (count: string) => {
     setPlayerCount(count);
     if (!isNaN(parseInt(count))) {
-      const newPresent = new Set<number>();
+      const newPresent = new Map<number, Player>();
       for (let i = 1; i <= parseInt(count); i++) {
-        newPresent.add(i);
+        newPresent.set(i, { id: i, hasBonus: false });
       }
       setPresentPlayers(newPresent);
     }
@@ -24,22 +24,34 @@ function App() {
 
   const handleReset = () => {
     setPlayerCount('');
-    setPresentPlayers(new Set());
+    setPresentPlayers(new Map());
     setMatches([]);
   };
 
   const handleTogglePresence = (playerId: number) => {
-    const newPresent = new Set(presentPlayers);
-    if (newPresent.has(playerId)) {
-      newPresent.delete(playerId);
-    } else {
-      newPresent.add(playerId);
+    const newPresent = new Map(presentPlayers);
+    const player = newPresent.get(playerId);
+    if (player) {
+      newPresent.set(playerId, { ...player, hasBonus: !player.hasBonus });
     }
     setPresentPlayers(newPresent);
   };
 
-  const handleMatchesUpdate = (newMatches: Match[]) => {
+  const handleMatchesUpdate = (newMatches: Match[]): void => {
+    console.log('handleMatchesUpdate called with:', newMatches);
     setMatches(newMatches);
+  };
+
+  const handleUpdateBonus = (playerIds: number[]): void => {
+    console.log('handleUpdateBonus called with:', playerIds);
+    const newPresent = new Map(presentPlayers);
+    playerIds.forEach(id => {
+      const player = newPresent.get(id);
+      if (player) {
+        newPresent.set(id, { ...player, hasBonus: true });
+      }
+    });
+    setPresentPlayers(newPresent);
   };
 
   return (
@@ -65,7 +77,7 @@ function App() {
             parseInt(playerCount) >= 4 ? (
               <PresenceList 
                 playerCount={playerCount}
-                presentPlayers={presentPlayers}
+                presentPlayers={Array.from(presentPlayers.values())}
                 onTogglePresence={handleTogglePresence}
               />
             ) : (
@@ -79,8 +91,9 @@ function App() {
             parseInt(playerCount) >= 4 ? (
               <DrawPage 
                 playerCount={playerCount}
-                presentPlayers={Array.from(presentPlayers)}
+                presentPlayers={Array.from(presentPlayers.values())}
                 onMatchesUpdate={handleMatchesUpdate}
+                onUpdateBonus={handleUpdateBonus}
               />
             ) : (
               <Navigate to="/" replace />

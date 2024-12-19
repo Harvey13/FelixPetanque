@@ -19,14 +19,20 @@ const DrawPage: React.FC<DrawPageProps> = ({
   const teamDrawService = new TeamDrawService();
   const navigate = useNavigate();
 
-  const handleDraw = React.useCallback(() => {
+  console.log('DrawPage rendu avec:', { playerCount, presentPlayers });
+
+  const handleDraw = () => {
+    console.log('handleDraw appelé');
+    
     if (presentPlayers.length < 4) {
       alert("Il faut au moins 4 joueurs présents pour effectuer le tirage");
       return;
     }
 
     try {
+      console.log('Génération des matches...');
       const newMatches = teamDrawService.generateMatches(presentPlayers);
+      console.log('Matches générés:', newMatches);
       
       const triplettePlayers = newMatches.flatMap(match => {
         const { team1, team2 } = match.teams;
@@ -35,27 +41,16 @@ const DrawPage: React.FC<DrawPageProps> = ({
         ).map(player => player.id);
       });
 
-      console.log('Avant onUpdateBonus:', {
-        triplettePlayers,
-        onUpdateBonusType: typeof onUpdateBonus,
-        onUpdateBonus,
-        newMatches
-      });
+      console.log('Avant onUpdateBonus:', { triplettePlayers });
 
-      if (typeof onUpdateBonus === 'function') {
-        onUpdateBonus(triplettePlayers);
-      }
-      
-      if (typeof onMatchesUpdate === 'function') {
-        onMatchesUpdate(newMatches);
-      }
-      
+      onUpdateBonus(triplettePlayers);
+      onMatchesUpdate(newMatches);
       navigate('/teams');
     } catch (error) {
-      console.error('Erreur lors du tirage:', error);
+      console.error('Erreur dans handleDraw:', error);
       alert("Une erreur s'est produite lors du tirage");
     }
-  }, [presentPlayers, onMatchesUpdate, onUpdateBonus, navigate, teamDrawService]);
+  };
 
   return (
     <main className="container mx-auto px-4 py-6 max-w-lg">
