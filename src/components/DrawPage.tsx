@@ -5,11 +5,17 @@ import { TeamDrawService } from '../services/team-draw.service';
 
 interface DrawPageProps {
   playerCount: string;
-  presentPlayers: number[];
-  onMatchesUpdate: (matches: Array<{matchNumber: number, matchText: string}>) => void;
+  presentPlayers: Player[];
+  onMatchesUpdate: (matches: Match[]) => void;
+  onUpdateBonus: (playerIds: number[]) => void;
 }
 
-const DrawPage: React.FC<DrawPageProps> = ({ playerCount, presentPlayers, onMatchesUpdate }) => {
+const DrawPage: React.FC<DrawPageProps> = ({ 
+  playerCount, 
+  presentPlayers, 
+  onMatchesUpdate,
+  onUpdateBonus 
+}) => {
   const teamDrawService = new TeamDrawService();
   const navigate = useNavigate();
 
@@ -18,7 +24,18 @@ const DrawPage: React.FC<DrawPageProps> = ({ playerCount, presentPlayers, onMatc
       alert("Il faut au moins 4 joueurs présents pour effectuer le tirage");
       return;
     }
-    const newMatches = teamDrawService.generateMatches(presentPlayers.length, presentPlayers);
+
+    const newMatches = teamDrawService.generateMatches(presentPlayers);
+    
+    // Mettre à jour les bonus pour les joueurs en triplettes
+    const triplettePlayers = newMatches.flatMap(match => {
+      const { team1, team2 } = match.teams;
+      return [...team1, ...team2].filter(player => 
+        team1.length === 3 || team2.length === 3
+      ).map(player => player.id);
+    });
+
+    onUpdateBonus(triplettePlayers);
     onMatchesUpdate(newMatches);
     navigate('/teams');
   };

@@ -1,91 +1,80 @@
+export interface Player {
+    id: number;
+    hasBonus: boolean;
+}
+
 export interface Match {
     matchNumber: number;
     matchText: string;
+    teams: {
+        team1: Player[];
+        team2: Player[];
+    };
 }
 
 export class TeamDrawService {
-    public generateMatches(playerCount: number, presentPlayers: number[] = []): Match[] {
+    public generateMatches(players: Player[]): Match[] {
+        const playerCount = players.length;
         if (playerCount < 4 || playerCount > 99) {
             return [{
                 matchNumber: 1,
-                matchText: "Le nombre de joueurs doit être entre 4 et 99"
+                matchText: "Le nombre de joueurs doit être entre 4 et 99",
+                teams: { team1: [], team2: [] }
             }];
         }
 
-        const players = [...presentPlayers];
-        this.shuffleArray(players);
+        // Trier les joueurs : ceux avec bonus en dernier
+        const sortedPlayers = [...players].sort((a, b) => {
+            if (a.hasBonus === b.hasBonus) return 0;
+            return a.hasBonus ? 1 : -1;
+        });
+
         const matches: Match[] = [];
-        const modulo = playerCount % 4;
         let matchNumber = 1;
-        let remainingPlayers = [...players];
+        let remainingPlayers = [...sortedPlayers];
 
-        switch (modulo) {
-            case 0: // Uniquement des doublettes
-                while (remainingPlayers.length >= 4) {
-                    const team1 = remainingPlayers.splice(0, 2);
-                    const team2 = remainingPlayers.splice(0, 2);
-                    matches.push(this.createMatch(matchNumber++, team1, team2));
-                }
-                break;
+        // Logique de tirage modifiée
+        while (remainingPlayers.length >= 4) {
+            // Priorité aux doublettes
+            const team1 = remainingPlayers.splice(0, 2);
+            const team2 = remainingPlayers.splice(0, 2);
+            matches.push(this.createMatch(matchNumber++, team1, team2));
+        }
 
-            case 1: // Dernière ligne en 2v3
-                while (remainingPlayers.length > 5) {
-                    const team1 = remainingPlayers.splice(0, 2);
-                    const team2 = remainingPlayers.splice(0, 2);
-                    matches.push(this.createMatch(matchNumber++, team1, team2));
-                }
-                if (remainingPlayers.length === 5) {
-                    const team1 = remainingPlayers.splice(0, 2);
-                    const team2 = remainingPlayers.splice(0, 3);
-                    matches.push(this.createMatch(matchNumber++, team1, team2));
-                }
-                break;
-
-            case 2: // Dernière ligne en 3v3
-                while (remainingPlayers.length > 6) {
-                    const team1 = remainingPlayers.splice(0, 2);
-                    const team2 = remainingPlayers.splice(0, 2);
-                    matches.push(this.createMatch(matchNumber++, team1, team2));
-                }
-                if (remainingPlayers.length === 6) {
-                    const team1 = remainingPlayers.splice(0, 3);
-                    const team2 = remainingPlayers.splice(0, 3);
-                    matches.push(this.createMatch(matchNumber++, team1, team2));
-                }
-                break;
-
-            case 3: // Avant-dernière en 3v3, dernière en 2v3
-                while (remainingPlayers.length > 11) {
-                    const team1 = remainingPlayers.splice(0, 2);
-                    const team2 = remainingPlayers.splice(0, 2);
-                    matches.push(this.createMatch(matchNumber++, team1, team2));
-                }
-                if (remainingPlayers.length === 11) {
-                    const team1 = remainingPlayers.splice(0, 3);
-                    const team2 = remainingPlayers.splice(0, 3);
-                    matches.push(this.createMatch(matchNumber++, team1, team2));
-                    
-                    const lastTeam1 = remainingPlayers.splice(0, 2);
-                    const lastTeam2 = remainingPlayers.splice(0, 3);
-                    matches.push(this.createMatch(matchNumber++, lastTeam1, lastTeam2));
-                }
-                break;
+        // Gestion du reste des joueurs
+        if (remainingPlayers.length > 0) {
+            const lastMatch = this.handleRemainingPlayers(remainingPlayers, matchNumber);
+            if (lastMatch) matches.push(lastMatch);
         }
 
         return matches;
     }
 
-    private createMatch(number: number, team1: number[], team2: number[]): Match {
-        return {
-            matchNumber: number,
-            matchText: `${team1.join(", ")} contre ${team2.join(", ")}`
-        };
+    private handleRemainingPlayers(players: Player[], matchNumber: number): Match | null {
+        // Éviter les triplettes pour les joueurs avec bonus si possible
+        const nonBonusPlayers = players.filter(p => !p.hasBonus);
+        const bonusPlayers = players.filter(p => p.hasBonus);
+
+        switch (players.length) {
+            case 3:
+                // Si possible, mettre les joueurs avec bonus en doublette
+                if (bonusPlayers.length > 0) {
+                    const team1 = [bonusPlayers[0], nonBonusPlayers[0]];
+                    const team2 = players.filter(p => !team1.includes(p));
+                    return this.createMatch(matchNumber, team1, team2);
+                }
+                break;
+            // Ajouter d'autres cas selon vos besoins
+        }
+
+        return null;
     }
 
-    private shuffleArray(array: number[]): void {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
+    private createMatch(number: number, team1: Player[], team2: Player[]): Match {
+        return {
+            matchNumber: number,
+            matchText: `${team1.map(p => p.id).join(", ")} contre ${team2.map(p => p.id).join(", ")}`,
+            teams: { team1, team2 }
+        };
     }
 }
